@@ -6,6 +6,7 @@ import Office from "./components/Office";
 import Camera from "./components/Camera";
 import Hud from "./components/Hud";
 import Media from "./components/Media";
+import { logWithTime } from "./components/LoggingUtil";
 
 let isBlackout = false;
 
@@ -13,6 +14,14 @@ let { Ambience } = Media.Sounds;
 Ambience.loop = true;
 
 let officeProps = { leftDoor: false, rightDoor: false };
+
+// Death descriptions for more detailed logging
+const DEATH_DESCRIPTIONS = {
+  Freddy: "Freddy Fazbear emerged from the darkness",
+  Bonnie: "Bonnie appeared in your face",
+  Chica: "Chica lunged from the doorway",
+  Foxy: "Foxy sprinted down the hall and got you",
+};
 
 const Game = ({
   office,
@@ -31,13 +40,21 @@ const Game = ({
   }, []);
 
   useEffect(() => {
-    if (gameOver) Ambience.pause();
+    if (gameOver) {
+      logWithTime('Game Over!');
+      Ambience.pause();
+    }
   }, [gameOver]);
 
   useEffect(() => {
     if (energy <= 0) {
+      logWithTime('POWER OUTAGE - All systems offline');
+      logWithTime('Emergency power conservation mode activated');
+      logWithTime('Warning: Security doors disabled, cameras offline');
       isBlackout = true;
       Ambience.pause();
+    } else if (energy <= 20) {
+      logWithTime(`WARNING: Power critically low (${energy}% remaining)`);
     }
   }, [energy]);
 
@@ -50,6 +67,21 @@ const Game = ({
     if (isCameraOpen) newTime -= 1100;
 
     dispatch({ type: "CHANGE_TIME", content: newTime });
+    
+    // Log door and light state changes
+    if (office.leftDoor !== officeProps.leftDoor) {
+      logWithTime(`Left door ${office.leftDoor ? 'closed' : 'opened'}`);
+    }
+    if (office.rightDoor !== officeProps.rightDoor) {
+      logWithTime(`Right door ${office.rightDoor ? 'closed' : 'opened'}`);
+    }
+    if (office.leftLight) {
+      logWithTime('Left light activated - checking blind spot');
+    }
+    if (office.rightLight) {
+      logWithTime('Right light activated - checking blind spot');
+    }
+
     officeProps = {
       leftDoor: office.leftDoor,
       rightDoor: office.rightDoor,
@@ -64,6 +96,10 @@ const Game = ({
 
   const handleJumpscare = (character) => {
     if (isBlackout || gameOver) return;
+    
+    logWithTime(`ALERT: Security breach - ${DEATH_DESCRIPTIONS[character]}`);
+    logWithTime('SYSTEM FAILURE - Game Over');
+    
     dispatch({
       type: "CHANGE_ANIMATRONIC",
       animatronic: character,
