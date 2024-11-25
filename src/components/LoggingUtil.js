@@ -8,6 +8,27 @@ let nextLogThreshold = Math.floor(Math.random() * 5) + 3; // Random number betwe
 let isProcessingResponse = false; // Flag to prevent multiple simultaneous calls
 const MAX_TIME_BETWEEN_REACTIONS = 25000; // 25 seconds maximum between reactions
 
+// Debug listener for game events
+window.addEventListener('GAME_EVENT', (event) => {
+    console.log('%c[GAME EVENT DEBUG]', 'color: #00ff00; font-weight: bold', {
+        type: event.detail.type,
+        payload: event.detail.payload,
+        timestamp: event.detail.timestamp
+    });
+});
+
+// Function to emit game events for Chrome extension
+const emitGameEvent = (eventName, data) => {
+    const event = new CustomEvent('EXTENSION_GAME_EVENT', {
+        detail: {
+            type: eventName,
+            payload: data,
+            timestamp: new Date().toISOString()
+        }
+    });
+    window.dispatchEvent(event);
+};
+
 // Helper function for timestamped logging that also adds to master string
 const logWithTime = (message) => {
     const now = new Date();
@@ -20,6 +41,13 @@ const logWithTime = (message) => {
     const logMessage = `[${timestamp}] ${message}`;
     console.log(logMessage);
     masterLog += logMessage + '\n';
+    
+    // Emit log event for Chrome extension
+    emitGameEvent('GAME_LOG', {
+        message: logMessage,
+        rawMessage: message,
+        timestamp: now.toISOString()
+    });
     
     // Increment log count and check if we should make an API call
     logCount++;
@@ -46,6 +74,13 @@ const formatAIResponse = (response) => {
         
         const formattedAction = `${boxSide} Animation: ${parsed.action.padEnd(39, ' ')} ${boxSide}`;
         const formattedPosition = `${boxSide} Position: ${parsed.position.padEnd(39, ' ')} ${boxSide}`;
+        
+        // Emit AI response event for Chrome extension
+        emitGameEvent('AI_RESPONSE', {
+            message: parsed.message,
+            action: parsed.action,
+            position: parsed.position
+        });
         
         return `\n${boxTop}\n${formattedMessage}\n${boxSide} ${''.padEnd(48, ' ')} ${boxSide}\n${formattedAction}\n${formattedPosition}\n${boxBottom}\n`;
     } catch (error) {
@@ -79,6 +114,11 @@ const checkForAIResponse = async () => {
             }
         } catch (error) {
             console.error('Error getting AI response:', error);
+            // Emit error event for Chrome extension
+            emitGameEvent('AI_ERROR', {
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
         } finally {
             // Reset all counters and flags after processing
             logCount = 0;
@@ -99,6 +139,35 @@ const clearMasterLog = () => {
     lastAPICall = Date.now();
     nextLogThreshold = Math.floor(Math.random() * 5) + 3;
     isProcessingResponse = false;
+    
+    // Emit clear log event for Chrome extension
+    emitGameEvent('LOGS_CLEARED', {
+        timestamp: new Date().toISOString()
+    });
 };
 
-export { logWithTime, getMasterLog, clearMasterLog };
+// Export a test function to manually trigger events for debugging
+const testEventEmission = () => {
+    console.log('%c[DEBUG] Testing event emission...', 'color: #ff00ff; font-weight: bold');
+    
+    // Test game log event
+    logWithTime('Test game log message');
+    
+    // Test AI response event
+    formatAIResponse(JSON.stringify({
+        message: 'Test AI response',
+        action: 'TEST_ACTION',
+        position: 'TEST_POSITION'
+    }));
+    
+    // Test error event
+    emitGameEvent('AI_ERROR', {
+        error: 'Test error message',
+        timestamp: new Date().toISOString()
+    });
+    
+    // Test clear logs event
+    clearMasterLog();
+};
+
+export { logWithTime, getMasterLog, clearMasterLog, testEventEmission };
