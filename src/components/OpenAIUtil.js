@@ -1,7 +1,7 @@
 import { getMasterLog } from './LoggingUtil';
 import { OPENAI_API_KEY } from '../config';
 
-const OPENAI_API_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_API_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Screen coordinate mappings for different game elements
 const SCREEN_COORDINATES = {
@@ -59,7 +59,7 @@ ${getMasterLog()}`;
                 'Authorization': 'Bearer ' + OPENAI_API_KEY
             },
             body: JSON.stringify({
-                model: "gpt-4",
+                model: "llama3-8b-8192",
                 messages: [
                     {
                         role: "system",
