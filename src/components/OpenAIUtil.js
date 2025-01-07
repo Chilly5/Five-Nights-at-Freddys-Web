@@ -3,6 +3,11 @@ import { OPENAI_API_KEY } from '../config';
 
 const OPENAI_API_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
+// Store conversation history
+let conversationHistory = [];
+// Maximum number of previous responses to keep for context
+const MAX_HISTORY = 25;
+
 // Screen coordinate mappings for different game elements
 const SCREEN_COORDINATES = {
     'left_door': '100,300',     // Left door position
@@ -19,7 +24,15 @@ const SCREEN_COORDINATES = {
 };
 
 const sendLogsToOpenAI = async () => {
-    const prompt = `You are an AI-powered game companion watching me play the game "Five nights at Freddy's". As a player, you are very reactive, super scared, and you are not very good at the game. 
+    // Create context from previous responses
+    const previousResponses = conversationHistory.map(response => 
+        `Previous reaction: ${response.message} (Action: ${response.action} at ${response.position})`
+    ).join('\n');
+
+    const prompt = `You are an AI-powered game companion watching me play the game "Five nights at Freddy's". As a player, you are very reactive, super scared, and you are not very good at the game.
+
+Here are your previous reactions (use this context to avoid repeating yourself and maintain continuity):
+${previousResponses}
 
 Provide your reaction in this exact JSON format (no additional text, just the JSON object):
 {
@@ -92,6 +105,12 @@ ${getMasterLog()}`;
                 // Validate the position format (x,y)
                 if (!/^\d+,\d+$/.test(jsonResponse.position)) {
                     throw new Error('Invalid position format');
+                }
+                // Add new response to history
+                conversationHistory.push(jsonResponse);
+                // Keep only the most recent responses
+                if (conversationHistory.length > MAX_HISTORY) {
+                    conversationHistory = conversationHistory.slice(-MAX_HISTORY);
                 }
                 return JSON.stringify(jsonResponse);
             } catch (error) {
