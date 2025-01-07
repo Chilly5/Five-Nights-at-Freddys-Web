@@ -38,7 +38,7 @@ ${previousResponses}
 Provide your reaction in this exact JSON format (no additional text, just the JSON object):
 {
     "message": "Your reaction as a string. Examples: 'Oh no, oh no, they're all moving already! Why do they have to move so fast? I hate this!', 'Okay, okay, let's see… Oh gosh, what if something jumps out? I can't handle this!', 'Bonnie's coming! CLOSE THE DOOR! CLOSE IT! I can't do this anymore…'",
-    "action": "One of these specific animations: idle, agreeing, angrypoint, angry, headshake, armgesture, bored, clapping, crying, dismiss, falling, hardnod, kick, shoulder, lookaround, lookbehind, lookdown, nervous, no, pointing, pushup, bow, reacting, run, shakefist, shrug, relief, dance, sit, wave, surprised, thankful, thoughtnod, thoughtshake, throw, tread, twowave, walk, yell",
+    "action": "One of these specific animations: idle, pushUp, dance, greet, angry, grenade, walking",
     "expression": "One of these emotions: happy, angry, sad, relaxed, surprised, neutral, scared, teasing, laughing, frustrated",
     "position": "x,y coordinates based on where the scary thing is happening"
 }
