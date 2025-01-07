@@ -1,4 +1,8 @@
-import { sendLogsToOpenAI } from './OpenAIUtil';
+import { sendLogsToOpenAI, sendCommentaryToOpenAI } from './OpenAIUtil';
+
+// Timer for commentary
+let commentaryInterval = null;
+const COMMENTARY_INTERVAL = 30000; // 30 seconds
 
 // Master string to store all logs
 let masterLog = '';
@@ -73,16 +77,18 @@ const formatAIResponse = (response) => {
         ).join('\n');
         
         const formattedAction = `${boxSide} Animation: ${parsed.action.padEnd(39, ' ')} ${boxSide}`;
+        const formattedExpression = `${boxSide} Expression: ${parsed.expression.padEnd(38, ' ')} ${boxSide}`;
         const formattedPosition = `${boxSide} Position: ${parsed.position.padEnd(39, ' ')} ${boxSide}`;
         
         // Emit AI response event for Chrome extension
         emitGameEvent('AI_RESPONSE', {
             message: parsed.message,
             action: parsed.action,
+            expression: parsed.expression,
             position: parsed.position
         });
         
-        return `\n${boxTop}\n${formattedMessage}\n${boxSide} ${''.padEnd(48, ' ')} ${boxSide}\n${formattedAction}\n${formattedPosition}\n${boxBottom}\n`;
+        return `\n${boxTop}\n${formattedMessage}\n${boxSide} ${''.padEnd(48, ' ')} ${boxSide}\n${formattedAction}\n${formattedExpression}\n${formattedPosition}\n${boxBottom}\n`;
     } catch (error) {
         console.error('Error formatting AI response:', error);
         return null;
@@ -132,6 +138,28 @@ const checkForAIResponse = async () => {
 // Function to get the complete log history
 const getMasterLog = () => masterLog;
 
+// Function to start commentary timer
+const startCommentaryTimer = async () => {
+    // Initial commentary
+    const initialComment = await sendCommentaryToOpenAI();
+    if (initialComment) {
+        console.log(formatAIResponse(initialComment));
+    }
+    
+    // Clear any existing interval
+    if (commentaryInterval) {
+        clearInterval(commentaryInterval);
+    }
+    
+    // Set up new interval
+    commentaryInterval = setInterval(async () => {
+        const comment = await sendCommentaryToOpenAI();
+        if (comment) {
+            console.log(formatAIResponse(comment));
+        }
+    }, COMMENTARY_INTERVAL);
+};
+
 // Function to clear the log history
 const clearMasterLog = () => {
     masterLog = '';
@@ -139,6 +167,15 @@ const clearMasterLog = () => {
     lastAPICall = Date.now();
     nextLogThreshold = Math.floor(Math.random() * 5) + 3;
     isProcessingResponse = false;
+    
+    // Clear commentary interval
+    if (commentaryInterval) {
+        clearInterval(commentaryInterval);
+        commentaryInterval = null;
+    }
+    
+    // Start new commentary timer
+    startCommentaryTimer();
     
     // Emit clear log event for Chrome extension
     emitGameEvent('LOGS_CLEARED', {
@@ -157,6 +194,7 @@ const testEventEmission = () => {
     formatAIResponse(JSON.stringify({
         message: 'Test AI response',
         action: 'TEST_ACTION',
+        expression: 'scared',
         position: 'TEST_POSITION'
     }));
     
@@ -169,5 +207,8 @@ const testEventEmission = () => {
     // Test clear logs event
     clearMasterLog();
 };
+
+// Start commentary timer when module loads
+startCommentaryTimer();
 
 export { logWithTime, getMasterLog, clearMasterLog, testEventEmission };
